@@ -34,7 +34,7 @@ app.post('/oauth/token', async (req: OauthLogin, res) => {
   const { username, password, client_id, client_secret, grant_type } = req.body;
   try {
     if (grant_type !== 'password') {
-      return res.json({ error: 'grant_type method not allowed' }).status(400);
+      return res.status(400).json({ error: 'grant_type method not allowed' });
     }
 
     const client = clients.filter(
@@ -42,16 +42,16 @@ app.post('/oauth/token', async (req: OauthLogin, res) => {
         client.client_id === client_id && client.client_secret === client_secret
     )[0];
 
-    if (!client) res.json({ error: 'Client not found' }).status(404);
+    if (!client) res.status(404).json({ error: 'Client not found' });
 
     const user = users.filter(user => user.user_id === username)[0];
 
-    if (!user) return res.json({ error: 'User not found' }).status(404);
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     const passwordMatch = user.password === password;
 
     if (!passwordMatch) {
-      return res.json({ error: 'User & Password Not Match' }).status(404);
+      return res.status(404).json({ error: 'User & Password Not Match' });
     }
     const iat = new Date();
 
@@ -111,7 +111,7 @@ app.post('/oauth/token', async (req: OauthLogin, res) => {
     });
   } catch (err) {
     console.log(err);
-    return res.json({ error: 'Internal Server Error' }).status(500);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -119,31 +119,29 @@ app.post('/oauth/resource', async (req, res) => {
   try {
     const { authorization } = req.headers;
     if (!authorization) {
-      return res.json({ status: 'Not Authorized' }).status(401);
+      return res.status(401).json({ status: 'Not Authorized' });
     }
     const [method, token] = authorization?.split(' ');
 
     if (method !== 'Bearer') {
       return res
-        .json({ error: 'Authorization Method Not Allowed' })
-        .status(401);
+        .status(401)
+        .json({ error: 'Authorization Method Not Allowed' });
     }
 
     const redis = await Redis.getInstance();
     const tokenPayload = await redis.getKey('accessToken', token);
 
     if (!tokenPayload) {
-      return res
-        .json({
-          error: 'Invalid Token',
-        })
-        .status(400);
+      return res.status(400).json({
+        error: 'Invalid Token',
+      });
     }
     const parsedTokenPayload = JSON.parse(tokenPayload);
     return res.json({ ...parsedTokenPayload });
   } catch (err) {
     console.log(err);
-    return res.json({ error: 'Internal Server Error' }).status(500);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
