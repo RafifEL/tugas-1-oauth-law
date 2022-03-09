@@ -124,16 +124,20 @@ app.post('/oauth/resource', async (req, res) => {
     const [method, token] = authorization?.split(' ');
 
     if (method !== 'Bearer') {
-      return res.json({ error: 'Authorization Method Not Allowed' });
+      return res
+        .json({ error: 'Authorization Method Not Allowed' })
+        .status(401);
     }
 
     const redis = await Redis.getInstance();
     const tokenPayload = await redis.getKey('accessToken', token);
 
     if (!tokenPayload) {
-      return res.json({
-        error: 'Invalid Token',
-      });
+      return res
+        .json({
+          error: 'Invalid Token',
+        })
+        .status(400);
     }
     const parsedTokenPayload = JSON.parse(tokenPayload);
     return res.json({ ...parsedTokenPayload });
