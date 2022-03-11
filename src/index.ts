@@ -32,27 +32,30 @@ app.use(
 
 app.post('/oauth/token', async (req: OauthLogin, res) => {
   const { username, password, client_id, client_secret, grant_type } = req.body;
+
+  const objectError = {
+    error: 'invalid_request',
+    error_description: 'ada kesalahan masbro!',
+  };
+
   try {
-    if (grant_type !== 'password') {
-      return res.status(400).json({ error: 'grant_type method not allowed' });
-    }
+    if (grant_type !== 'password') return res.status(401).json(objectError);
 
     const client = clients.filter(
       client =>
         client.client_id === client_id && client.client_secret === client_secret
     )[0];
 
-    if (!client) res.status(404).json({ error: 'Client not found' });
+    if (!client) return res.status(401).json(objectError);
 
     const user = users.filter(user => user.user_id === username)[0];
 
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) return res.status(401).json(objectError);
 
     const passwordMatch = user.password === password;
 
-    if (!passwordMatch) {
-      return res.status(404).json({ error: 'User & Password Not Match' });
-    }
+    if (!passwordMatch) return res.status(401).json(objectError);
+
     const iat = new Date();
 
     const accessToken = HmacSHA1(
@@ -111,15 +114,20 @@ app.post('/oauth/token', async (req: OauthLogin, res) => {
     });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(401).json(objectError);
   }
 });
 
 app.post('/oauth/resource', async (req, res) => {
+  const objectError = {
+    error: 'invalid_token',
+    error_description: 'Token Salah masbro',
+  };
+
   try {
     const { authorization } = req.headers;
     if (!authorization) {
-      return res.status(401).json({ status: 'Not Authorized' });
+      return res.status(401).json(objectError);
     }
     const [method, token] = authorization?.split(' ');
 
@@ -133,15 +141,16 @@ app.post('/oauth/resource', async (req, res) => {
     const tokenPayload = await redis.getKey('accessToken', token);
 
     if (!tokenPayload) {
-      return res.status(400).json({
+      return res.status(401).json({
         error: 'Invalid Token',
       });
     }
+
     const parsedTokenPayload = JSON.parse(tokenPayload);
     return res.json({ ...parsedTokenPayload });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(401).json(objectError);
   }
 });
 
